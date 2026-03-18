@@ -1,10 +1,35 @@
 pipeline {
     agent any
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 1, unit: 'HOURS')
+    }
+
+    triggers { githubPush() }
+
+    environment {
+        PYTHON_VERSION = '3.8'
+        GIT_CREDENTIALS = credentials('RonGitUser')
+        REPO_URL = 'https://github.com/ron1120/basic-cloud-deployment.git'
+
+    }
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                echo 'Building...'
+                script {
+                    git branch: 'main', credentialsId: env.GIT_CREDENTIALS, url: env.REPO_URL
+
+                    env.GIT_BRANCH_NAME = sh(script: 'git rev-parse --abrev-ref HEAD', returnStdout: true).trim()
+                        returnStdout: true.trim()
+
+                    if (env.GIT_BRANCH_NAME == 'main') {
+                        echo "On main branch, proceeding with build and deploy."
+                    } else {
+                        error "Not on main branch, aborting pipeline."
+                    }
+                }
             }
         }
 
