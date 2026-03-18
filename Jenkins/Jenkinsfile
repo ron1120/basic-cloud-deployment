@@ -42,10 +42,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install -r requirements.txt'
-                sh './venv/bin/python bot.py'
-                sh 'echo "Bot is running with token: $DISCORD_TOKEN"'
+                sh 'cd discord-bot && python3 -m venv venv'
+                sh 'cd discord-bot && ./venv/bin/pip install -r requirements.txt'
+                sh 'cd discord-bot && nohup ./venv/bin/python bot.py &'
                 sh 'echo "Deployment complete."'
             }
         }
