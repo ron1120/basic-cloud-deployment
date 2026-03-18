@@ -40,17 +40,12 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent {
-                docker { image 'python:3.11-slim' }
-            }
             steps {
                 echo 'Deploying...'
                 sh '''
-                    cd discord-bot
-                    pip install -r requirements.txt
-                    nohup python bot.py &
-                    sleep 5
-                    echo "Deployment complete."
+                    which python3 || which python || echo "No python found"
+                    cat /etc/os-release || true
+                    whoami
                 '''
             }
         }
