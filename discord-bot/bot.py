@@ -11,9 +11,15 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 
+DEPLOY_CHANNEL_ID = 1377709832085180428
+
+
 @client.event
 async def on_ready():
     print(f'{client.user} is online!')
+    channel = client.get_channel(DEPLOY_CHANNEL_ID)
+    if channel:
+        await channel.send('✅ Bot has been deployed and is online!')
 
 
 @client.event

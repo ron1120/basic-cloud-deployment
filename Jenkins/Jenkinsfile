@@ -12,6 +12,7 @@ pipeline {
         PYTHON_VERSION = '3.8'
         GIT_CREDENTIALS = credentials('RonGitUser')
         REPO_URL = 'https://github.com/ron1120/basic-cloud-deployment.git'
+        DISCORD_TOKEN = credentials('DISCORD_TOKEN')
 
     }
 
@@ -41,6 +42,11 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
+                sh 'python3 -m venv venv'
+                sh './venv/bin/pip install -r requirements.txt'
+                sh './venv/bin/python bot.py'
+                sh 'echo "Bot is running with token: $DISCORD_TOKEN"'
+                sh 'echo "Deployment complete."'
             }
         }
     }
