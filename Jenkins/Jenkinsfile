@@ -42,12 +42,10 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying...'
-                sh '''
-                    docker stop discord-bot || true
-                    docker rm discord-bot || true
-                    docker build -t discord-bot ./discord-bot
-                    docker run -d --name discord-bot -e DISCORD_TOKEN=$DISCORD_TOKEN discord-bot
-                '''
+                sh 'docker stop discord-bot || true'
+                sh 'docker rm discord-bot || true'
+                sh 'docker build -t discord-bot ./discord-bot'
+                sh "docker run -d --name discord-bot -e DISCORD_TOKEN=${DISCORD_TOKEN} discord-bot"
             }
         }
     }
