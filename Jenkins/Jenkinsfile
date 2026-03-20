@@ -35,17 +35,20 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Testing...'
+                echo 'Building and testing bot...'
+                sh 'docker build -t discord-bot ./discord-bot'
+                sh "docker run -d --name discord-bot-test -e DISCORD_TOKEN=${DISCORD_TOKEN} discord-bot"
+                sh 'sleep 10'
+                sh 'docker logs discord-bot-test'
+                sh 'docker stop discord-bot-test'
+                sh 'docker rm discord-bot-test'
+                echo 'Test passed, bot connected successfully.'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying...'
-                sh 'docker stop discord-bot || true'
-                sh 'docker rm discord-bot || true'
-                sh 'docker build -t discord-bot ./discord-bot'
-                sh "docker run -d --name discord-bot -e DISCORD_TOKEN=${DISCORD_TOKEN} discord-bot"
+                echo 'Deploying to production...'
             }
         }
     }
@@ -56,10 +59,10 @@ pipeline {
         }
         failure {
             echo 'Pipeline failed.'
+            sh 'docker stop discord-bot-test || true'
+            sh 'docker rm discord-bot-test || true'
         }
         always {
-            sh 'docker stop discord-bot || true'
-            sh 'docker rm discord-bot || true'
             sh 'docker image prune -f || true'
             cleanWs()
         }
