@@ -58,6 +58,8 @@ pipeline {
             echo 'Pipeline failed.'
         }
         always {
+            sh 'docker stop discord-bot || true'
+            sh 'docker rm discord-bot || true'
             sh 'docker image prune -f || true'
             cleanWs()
         }
