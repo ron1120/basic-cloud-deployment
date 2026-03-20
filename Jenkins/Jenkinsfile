@@ -6,6 +6,11 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')
     }
 
+    parameters {
+        booleanParam(name: 'SKIP_TEST', defaultValue: false, description: 'Skip the Test stage')
+        booleanParam(name: 'SKIP_PUSH', defaultValue: false, description: 'Skip the Push to DockerHub stage')
+    }
+
     triggers { githubPush() }
 
     environment {
@@ -15,6 +20,8 @@ pipeline {
         DISCORD_TOKEN = credentials('DISCORD_TOKEN')
         DOCKERHUB_CREDS = credentials('RonDockerUser')
         DOCKER_IMAGE = "ronsss/discord-bot"
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
 
     stages {
@@ -35,6 +42,9 @@ pipeline {
         }
 
         stage('Test') {
+            when {
+                expression { return !params.SKIP_TEST }
+            }
             steps {
                 echo 'Building and testing bot...'
                 sh 'docker build -t discord-bot ./discord-bot'
@@ -54,6 +64,9 @@ pipeline {
         }
 
         stage('Push to DockerHub') {
+            when {
+                expression { return !params.SKIP_PUSH }
+            }
             steps {
                 echo 'Pushing image to DockerHub...'
                 sh 'echo $DOCKERHUB_CREDS_PSW | docker login -u $DOCKERHUB_CREDS_USR --password-stdin'
@@ -68,7 +81,34 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Image ready on DockerHub. Deploying to production...'
+                echo 'Provisioning infrastructure with Terraform...'
+                dir('infastructure/terraform') {
+                    sh 'terraform init -input=false'
+                    sh 'terraform apply -auto-approve'
+                    script {
+                        env.EC2_IP = sh(script: 'terraform output -raw instance_public_ip', returnStdout: true).trim()
+                    }
+                }
+                echo "EC2 instance ready at ${env.EC2_IP}"
+
+                echo 'Waiting for EC2 to be reachable...'
+                sh 'sleep 30'
+
+                echo 'Deploying bot with Ansible...'
+                dir('infastructure/ansible') {
+                    sh "echo '${env.EC2_IP}' > inventory_dynamic.ini"
+                    sh '''
+                        echo '[app]' > inventory_dynamic.ini
+                        echo ""${EC2_IP}"" >> inventory_dynamic.ini
+                        echo '' >> inventory_dynamic.ini
+                        echo '[app:vars]' >> inventory_dynamic.ini
+                        echo 'ansible_user=ubuntu' >> inventory_dynamic.ini
+                        echo 'ansible_ssh_private_key_file=/var/jenkins_home/.ssh/awsFE.pem' >> inventory_dynamic.ini
+                        echo 'ansible_python_interpreter=/usr/bin/python3' >> inventory_dynamic.ini
+                    '''
+                    sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory_dynamic.ini playbook.yml --extra-vars "discord_token=$DISCORD_TOKEN_PSW"'
+                }
+                echo 'Bot deployed to production!'
             }
         }
     }
