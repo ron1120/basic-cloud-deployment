@@ -1,0 +1,13 @@
+docker run -d \
+  --name jenkins \
+  -p 8080:8080 \
+  -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  jenkins/jenkins:lts
+
+
+
+## DOCKER SOCKET INJECT DEPENDENCY
+
+docker exec -u root jenkins bash -c "apt-get update && apt-get install -y docker.io && groupadd -f docker && usermod -aG docker jenkins && chmod 666 /var/run/docker.sock"
