@@ -10,3 +10,7 @@ docker run -d \
 
 ## DOCKER SOCKET INJECT DEPENDENCY
 docker exec -u root jenkins bash -c "apt-get update && apt-get install -y docker.io && groupadd -f docker && usermod -aG docker jenkins && chmod 666 /var/run/docker.sock"
+
+
+## DOCKER TERRAFORM INJECT DEPENDENCY
+docker exec -u root jenkins bash -c "apt-get update && apt-get install -y curl gnupg lsb-release && curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo \"deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com \$(lsb_release -cs) main\" > /etc/apt/sources.list.d/hashicorp.list && apt-get update && apt-get install -y terraform"
