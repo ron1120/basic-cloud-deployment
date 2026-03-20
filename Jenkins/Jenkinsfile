@@ -9,7 +9,6 @@ pipeline {
     parameters {
         booleanParam(name: 'SKIP_TEST', defaultValue: false, description: 'Skip the Test stage')
         booleanParam(name: 'SKIP_PUSH', defaultValue: false, description: 'Skip the Push to DockerHub stage')
-        booleanParam(name: 'SKIP_DEPLOY', defaultValue: true, description: 'Skip the Deploy to AWS stage')
     }
 
     triggers { githubPush() }
@@ -79,9 +78,8 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                expression { return !params.SKIP_DEPLOY }
-            }
+
+            ## ENV VARS
             environment {
                 AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
                 AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
