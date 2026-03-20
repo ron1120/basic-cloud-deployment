@@ -37,11 +37,17 @@ pipeline {
             steps {
                 echo 'Building and testing bot...'
                 sh 'docker build -t discord-bot ./discord-bot'
-                sh "docker run -d --name discord-bot-test -e DISCORD_TOKEN=${DISCORD_TOKEN} discord-bot"
+                sh 'docker run -d --name discord-bot-test -e DISCORD_TOKEN=$DISCORD_TOKEN_PSW discord-bot'
                 sh 'sleep 10'
                 sh 'docker logs discord-bot-test'
-                sh 'docker stop discord-bot-test'
-                sh 'docker rm discord-bot-test'
+                script {
+                    def running = sh(script: 'docker inspect -f {{.State.Running}} discord-bot-test', returnStdout: true).trim()
+                    sh 'docker stop discord-bot-test'
+                    sh 'docker rm discord-bot-test'
+                    if (running != 'true') {
+                        error 'Bot failed to stay running. Check the logs above.'
+                    }
+                }
                 echo 'Test passed, bot connected successfully.'
             }
         }
