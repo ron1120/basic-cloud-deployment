@@ -36,8 +36,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Building and testing bot...'
-                sh 'docker build -t discord-bot ./discord-bot'
-                sh 'docker run -d --name discord-bot-test -e DISCORD_TOKEN=$DISCORD_TOKEN_PSW discord-bot'
+                sh 'docker build -t discord-bot ./discord-bot'                sh 'docker run -d --name discord-bot-test -e DISCORD_TOKEN=$DISCORD_TOKEN_PSW discord-bot'
                 sh 'sleep 10'
                 sh 'docker logs discord-bot-test'
                 script {
