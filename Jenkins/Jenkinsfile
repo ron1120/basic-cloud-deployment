@@ -13,7 +13,8 @@ pipeline {
         GIT_CREDENTIALS = credentials('RonGitUser')
         REPO_URL = 'https://github.com/ron1120/basic-cloud-deployment.git'
         DISCORD_TOKEN = credentials('DISCORD_TOKEN')
-
+        DOCKERHUB_CREDS = credentials('RonDockerUser')
+        DOCKER_IMAGE = "ronsss/discord-bot"
     }
 
     stages {
@@ -51,9 +52,22 @@ pipeline {
             }
         }
 
+        stage('Push to DockerHub') {
+            steps {
+                echo 'Pushing image to DockerHub...'
+                sh 'echo $DOCKERHUB_CREDS_PSW | docker login -u $DOCKERHUB_CREDS_USR --password-stdin'
+                sh 'docker tag discord-bot $DOCKER_IMAGE:latest'
+                sh 'docker tag discord-bot $DOCKER_IMAGE:${BUILD_NUMBER}'
+                sh 'docker push $DOCKER_IMAGE:latest'
+                sh 'docker push $DOCKER_IMAGE:${BUILD_NUMBER}'
+                sh 'docker logout'
+                echo "Pushed $DOCKER_IMAGE:latest and $DOCKER_IMAGE:${BUILD_NUMBER}"
+            }
+        }
+
         stage('Deploy') {
             steps {
-                echo 'Deploying to production...'
+                echo 'Image ready on DockerHub. Deploying to production...'
             }
         }
     }

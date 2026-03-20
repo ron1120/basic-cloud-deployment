@@ -1,0 +1,118 @@
+---
+- name: Configure Ubuntu EC2 for Discord Bot
+  hosts: app
+  become: true
+
+  vars:
+    docker_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    app_dir: /opt/discord-bot
+    bot_image: discord-bot
+
+  tasks:
+    # ── System Updates ──
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    # ── Docker Installation ──
+    - name: Install prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: Add Docker repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Update apt cache after adding Docker repo
+      apt:
+        update_cache: true
+
+    - name: Install Docker
+      apt:
+        name: "{{ docker_packages }}"
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: true
+
+    # ── Application Setup ──
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Copy bot.py
+      copy:
+        src: ../../discord-bot/bot.py
+        dest: "{{ app_dir }}/bot.py"
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Copy requirements.txt
+      copy:
+        src: ../../discord-bot/requirements.txt
+        dest: "{{ app_dir }}/requirements.txt"
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Copy Dockerfile
+      copy:
+        src: ../../discord-bot/Dockerfile
+        dest: "{{ app_dir }}/Dockerfile"
+        owner: ubuntu
+        group: ubuntu
+
+    # ── Build & Run ──
+    - name: Build Docker image
+      community.docker.docker_image:
+        name: "{{ bot_image }}"
+        source: build
+        build:
+          path: "{{ app_dir }}"
+        state: present
+        force_source: true
+
+    - name: Run Discord bot container
+      community.docker.docker_container:
+        name: "{{ bot_image }}"
+        image: "{{ bot_image }}"
+        state: started
+        restart_policy: unless-stopped
+        env:
+          DISCORD_TOKEN: "{{ discord_token }}"
