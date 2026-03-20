@@ -125,13 +125,13 @@ pipeline {
         }
         failure {
             echo 'Pipeline failed.'
-            node {
+            node('') {
                 sh 'docker stop discord-bot-test || true'
                 sh 'docker rm discord-bot-test || true'
             }
         }
         always {
-            node {
+            node('') {
                 sh 'docker image prune -f || true'
             }
             cleanWs()
