@@ -9,6 +9,7 @@ pipeline {
     parameters {
         booleanParam(name: 'SKIP_TEST', defaultValue: false, description: 'Skip the Test stage')
         booleanParam(name: 'SKIP_PUSH', defaultValue: false, description: 'Skip the Push to DockerHub stage')
+        booleanParam(name: 'TERRAFORM_DESTROY', defaultValue: false, description: 'Destroy AWS infrastructure after pipeline')
     }
 
     triggers { githubPush() }
@@ -97,19 +98,37 @@ pipeline {
 
                 echo 'Deploying bot with Ansible...'
                 dir('infastructure/ansible') {
-                    sh "echo '${env.EC2_IP}' > inventory_dynamic.ini"
-                    sh '''
+                    sh """
                         echo '[app]' > inventory_dynamic.ini
-                        echo ""${EC2_IP}"" >> inventory_dynamic.ini
+                        echo '${env.EC2_IP}' >> inventory_dynamic.ini
                         echo '' >> inventory_dynamic.ini
                         echo '[app:vars]' >> inventory_dynamic.ini
                         echo 'ansible_user=ubuntu' >> inventory_dynamic.ini
                         echo 'ansible_ssh_private_key_file=/var/jenkins_home/.ssh/awsFE.pem' >> inventory_dynamic.ini
                         echo 'ansible_python_interpreter=/usr/bin/python3' >> inventory_dynamic.ini
-                    '''
-                    sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory_dynamic.ini playbook.yml --extra-vars "discord_token=$DISCORD_TOKEN_PSW"'
+                    """
+                    sh 'cat inventory_dynamic.ini'
+                    sh 'cat playbook.yml'
+                    sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory_dynamic.ini playbook.yml --extra-vars "discord_token=$DISCORD_TOKEN_PSW docker_tag=${BUILD_NUMBER}"'
                 }
                 echo 'Bot deployed to production!'
+                }
+            }
+        }
+
+        stage('Teardown') {
+            when {
+                expression { return params.TERRAFORM_DESTROY }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                                 string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    echo 'Destroying AWS infrastructure...'
+                    dir('infastructure/terraform') {
+                        sh 'terraform init -input=false'
+                        sh 'terraform destroy -auto-approve'
+                    }
+                    echo 'Infrastructure destroyed.'
                 }
             }
         }
