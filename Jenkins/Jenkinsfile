@@ -43,20 +43,10 @@ pipeline {
             steps {
                 echo 'Deploying...'
                 sh '''
-                    export PYTHON_DIR="$HOME/python3"
-                    if [ ! -f "$PYTHON_DIR/bin/python3" ]; then
-                        echo "Installing standalone Python..."
-                        curl -sSL https://github.com/indygreg/python-build-standalone/releases/download/20240726/cpython-3.11.9+20240726-x86_64-unknown-linux-gnu-install_only.tar.gz -o /tmp/python.tar.gz
-                        mkdir -p "$PYTHON_DIR"
-                        tar -xzf /tmp/python.tar.gz -C "$PYTHON_DIR" --strip-components=1
-                        rm /tmp/python.tar.gz
-                    fi
-                    export PATH="$PYTHON_DIR/bin:$PATH"
-                    cd discord-bot
-                    python3 -m pip install -r requirements.txt
-                    nohup python3 bot.py &
-                    sleep 5
-                    echo "Deployment complete."
+                    docker stop discord-bot || true
+                    docker rm discord-bot || true
+                    docker build -t discord-bot ./discord-bot
+                    docker run -d --name discord-bot -e DISCORD_TOKEN=$DISCORD_TOKEN discord-bot
                 '''
             }
         }
