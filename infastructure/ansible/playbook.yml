@@ -5,7 +5,6 @@
 
   vars:
     docker_image: "ronsss/discord-bot"
-    docker_tag: "latest"
     container_name: "discord-bot"
 
   tasks:
@@ -79,4 +78,4 @@
         --name {{ container_name }}
         --restart unless-stopped
         -e DISCORD_TOKEN={{ discord_token }}
-        {{ docker_image }}:{{ docker_tag }}
+        {{ docker_image }}:latest

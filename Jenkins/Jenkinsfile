@@ -109,7 +109,7 @@ pipeline {
                     """
                     sh 'cat inventory_dynamic.ini'
                     sh 'cat playbook.yml'
-                    sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory_dynamic.ini playbook.yml --extra-vars "discord_token=$DISCORD_TOKEN_PSW docker_tag=${BUILD_NUMBER}"'
+                    sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory_dynamic.ini playbook.yml --extra-vars "discord_token=$DISCORD_TOKEN_PSW"'
                 }
                 echo 'Bot deployed to production!'
                 }
