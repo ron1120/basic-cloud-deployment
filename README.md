@@ -83,6 +83,11 @@ A lightweight bot built with `discord.py`:
 |---------|----------|
 | `!hi`   | Greets the user by name |
 | `!ping` | Responds with "Pong!" |
+| `!git repo` | Shows repository info (stars, forks, open issues) |
+| `!git commits` | Shows the 5 most recent commits |
+| `!git latest` | Shows the single latest commit with author and link |
+
+GitHub API calls use the repo configured via `GITHUB_REPO` (defaults to `ron1120/basic-cloud-deployment`). Set `GITHUB_TOKEN` in `.env` for higher rate limits (5,000 req/hr vs 60 req/hr unauthenticated).
 
 On startup, the bot sends a deployment notification to a designated Discord channel, confirming it's online.
 
